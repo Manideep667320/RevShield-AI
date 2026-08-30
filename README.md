@@ -21,12 +21,39 @@ Full architecture and implementation plan: see `implementation_plan.md` in AI me
 | Layer | Technology |
 |---|---|
 | Backend | Python 3.11 + FastAPI |
-| Database | PostgreSQL 16 |
+| Database | PostgreSQL 16 / SQLite fallback |
 | Workflow Engine | Temporal |
 | Event Queue | Redis Streams |
 | ML | scikit-learn, XGBoost |
 | LLM | OpenAI (Phase 9, with guardrails) |
 | Frontend | Next.js 14 + TypeScript |
+
+---
+
+## Cloud Deployment (Render)
+
+The backend engine is live and deployed on **Render**:
+
+- **Live Service URL**: `https://revshield-ai.onrender.com`
+- **Live Health Check**: `https://revshield-ai.onrender.com/health`
+- **Interactive Swagger UI**: `https://revshield-ai.onrender.com/docs`
+- **Public Razorpay Webhook Target**: `https://revshield-ai.onrender.com/api/v1/webhooks/razorpay/payment`
+
+### Deployment Architecture & Environment Configuration
+
+| Setting | Configuration Value | Description |
+|---|---|---|
+| **Python Version** | `3.11.9` | Pinned in Render environment variables (`PYTHON_VERSION=3.11.9`) for Pydantic v2 / Maturin wheel stability. |
+| **Start Command** | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` | Production Uvicorn ASGI server bound to dynamic Render `$PORT`. |
+| **CORS Policy** | Wildcard / Multi-Origin Enabled | Allows cross-origin REST requests from local (`http://localhost:3000`) and cloud frontends (Vercel/Netlify). |
+| **Database Resilience** | Dual-Engine DB | Automatic fallback between PostgreSQL 16 and SQLite for zero-downtime container launches. |
+| **Queue Fallback** | Graceful Single-Node Handling | EventQueuePublisher operates seamlessly with or without external Redis instance. |
+
+### Frontend Environment Setup
+To connect your local Next.js frontend or production deployment to the live Render backend, configure `frontend/.env.local`:
+```env
+NEXT_PUBLIC_API_URL=https://revshield-ai.onrender.com/api/v1
+```
 
 ---
 
@@ -176,7 +203,7 @@ See `knowledge/code-writing-rules/artifacts/rules.md` for full standards.
 
 ## API Documentation
 
-Auto-generated at runtime:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- OpenAPI JSON: http://localhost:8000/openapi.json
+- **Live Deployed Swagger UI**: https://revshield-ai.onrender.com/docs
+- **Local Development Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: https://revshield-ai.onrender.com/redoc
+- **OpenAPI JSON**: https://revshield-ai.onrender.com/openapi.json
