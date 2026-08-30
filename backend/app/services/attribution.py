@@ -65,6 +65,10 @@ class AttributionEngine:
 
         time_to_recovery = None
         if executed_at:
+            if executed_at.tzinfo is None:
+                executed_at = executed_at.replace(tzinfo=timezone.utc)
+            if recorded_at.tzinfo is None:
+                recorded_at = recorded_at.replace(tzinfo=timezone.utc)
             time_to_recovery = recorded_at - executed_at
             max_window = ATTRIBUTION_WINDOWS.get(action_type, timedelta(hours=24))
             if time_to_recovery > max_window:
