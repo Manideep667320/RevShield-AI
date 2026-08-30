@@ -62,23 +62,55 @@ export async function submitApprovalDecision(
   });
 }
 
-// ─── Simulate failed payment ───────────────────────────────────────────────
-// Requires merchant_id + customer_id UUIDs — use known seed UUIDs or generate fresh ones.
 const DEMO_MERCHANT_ID = '00000000-0000-0000-0000-000000000001';
 const DEMO_CUSTOMER_ID = '00000000-0000-0000-0000-000000000002';
 
+const SIMULATION_SCENARIOS = [
+  {
+    amount: 35000.0,
+    payment_method: 'CARD',
+    failure_code: 'INSUFFICIENT_FUNDS',
+    description: 'High-value card failure requiring manager approval',
+  },
+  {
+    amount: 14500.0,
+    payment_method: 'UPI',
+    failure_code: 'NETWORK_TIMEOUT',
+    description: 'UPI gateway timeout auto-recovered via smart retry',
+  },
+  {
+    amount: 8900.0,
+    payment_method: 'NETBANKING',
+    failure_code: 'CUSTOMER_ABANDONED',
+    description: 'Customer checkout abandonment recovered via SMS reminder',
+  },
+  {
+    amount: 62000.0,
+    payment_method: 'CARD',
+    failure_code: 'EXPIRED_PAYMENT',
+    description: 'Enterprise invoice failure requiring human escalation',
+  },
+  {
+    amount: 18200.0,
+    payment_method: 'CARD',
+    failure_code: 'GATEWAY_ERROR',
+    description: 'Payment gateway error auto-resolved via retry',
+  },
+];
+
 export async function triggerSimulation(): Promise<{ status: string; payment_id?: string }> {
+  const scenario = SIMULATION_SCENARIOS[Math.floor(Math.random() * SIMULATION_SCENARIOS.length)];
   return apiFetch('/simulate/payment-failure', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       merchant_id: DEMO_MERCHANT_ID,
       customer_id: DEMO_CUSTOMER_ID,
-      amount: 35000.0,
+      amount: scenario.amount,
       currency: 'INR',
-      payment_method: 'CARD',
-      failure_code: 'INSUFFICIENT_FUNDS',
-      metadata: { source: 'dashboard_simulation' },
+      payment_method: scenario.payment_method,
+      failure_code: scenario.failure_code,
+      metadata: { source: 'dashboard_simulation', description: scenario.description },
     }),
   });
 }
