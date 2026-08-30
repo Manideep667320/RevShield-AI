@@ -1,0 +1,157 @@
+# Docker Compose V2 — no 'version' key needed
+
+x-temporal-env: &temporal-env
+  DB: postgres12
+  DB_PORT: 5432
+  POSTGRES_USER: ${POSTGRES_USER:-recovery}
+  POSTGRES_PWD: ${POSTGRES_PASSWORD:-recovery_secret}
+  POSTGRES_SEEDS: postgres
+
+services:
+  # ──────────────────────────────────────────
+  # PostgreSQL 16
+  # ──────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: rra_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-recovery}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-recovery_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-revenue_recovery}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-recovery} -d ${POSTGRES_DB:-revenue_recovery}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ──────────────────────────────────────────
+  # Redis 7 (Streams + Cache)
+  # ──────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: rra_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ──────────────────────────────────────────
+  # Temporal Server
+  # ──────────────────────────────────────────
+  temporal:
+    image: temporalio/auto-setup:1.24
+    container_name: rra_temporal
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *temporal-env
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD", "temporal", "workflow", "list", "--address", "temporal:7233"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # ──────────────────────────────────────────
+  # Temporal Web UI
+  # ──────────────────────────────────────────
+  temporal-ui:
+    image: temporalio/ui:2.28.0
+    container_name: rra_temporal_ui
+    restart: unless-stopped
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+
+  # ──────────────────────────────────────────
+  # pgAdmin (DB Management UI)
+  # ──────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: rra_pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@recovery.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  # ──────────────────────────────────────────
+  # FastAPI Backend
+  # ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rra_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ──────────────────────────────────────────
+  # Temporal Worker
+  # ──────────────────────────────────────────
+  temporal-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rra_temporal_worker
+    restart: unless-stopped
+    depends_on:
+      temporal:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    volumes:
+      - ./backend:/app
+    command: python -m temporal.worker
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  default:
+    name: rra_network

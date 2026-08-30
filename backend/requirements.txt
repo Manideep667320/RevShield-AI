@@ -1,0 +1,54 @@
+# Revenue Recovery Engine — Backend
+# Required packages for Phase 0 (production-grade foundation)
+
+# ── Web Framework ──────────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.31.0
+
+# ── Data Validation ────────────────────────────────────────────────────────
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# ── Database ───────────────────────────────────────────────────────────────
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+alembic==1.13.3
+
+# ── Temporal Workflow ─────────────────────────────────────────────────────
+temporalio==1.7.1
+
+# ── Redis ─────────────────────────────────────────────────────────────────
+redis[hiredis]==5.1.1
+
+# ── Security ──────────────────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0   # JWT signing for PolicyClearance tokens
+cryptography==43.0.3
+
+# ── HTTP Client ────────────────────────────────────────────────────────────
+httpx==0.27.2                       # Razorpay API calls, async
+
+# ── Config ────────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── YAML (taxonomy config) ────────────────────────────────────────────────
+pyyaml==6.0.2
+
+# ── Observability ─────────────────────────────────────────────────────────
+prometheus-fastapi-instrumentator==7.0.0
+
+# ── Phase 8+ (ML — pinned but not imported in Phase 0) ────────────────────
+scikit-learn==1.5.2
+xgboost==2.1.1
+pandas==2.2.3
+numpy==2.1.1
+
+# ── Phase 9+ (LLM — stubbed in Phase 0) ──────────────────────────────────
+openai==1.51.0
+instructor==1.4.3
+
+# ── Development ───────────────────────────────────────────────────────────
+pytest==8.3.3
+pytest-asyncio==0.24.0
+anyio==4.6.2
+httpx==0.27.2                       # AsyncClient for ASGI tests
+aiosqlite==0.20.0                   # In-memory SQLite for tests

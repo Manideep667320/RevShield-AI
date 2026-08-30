@@ -1,0 +1,116 @@
+# ──────────────────────────────────────────────────────────────────────────
+# Razorpay Failure Code → Internal Taxonomy Mapping
+# Version: 1.0
+#
+# MAINTENANCE: Update this file when Razorpay adds/changes error codes.
+# Reference: https://razorpay.com/docs/payments/payment-gateway/error-codes/
+#
+# Rules:
+#   - razorpay_codes: list of exact Razorpay error strings (colon-separated for sub-codes)
+#   - internal_cause: maps to FailureCause enum in app/schemas/enums.py
+#   - retriable: whether automatic retry is permitted
+#   - suggested_wait_minutes: recommended delay before retry attempt
+#   - human_review: requires human review before any intervention
+#   - llm_assist: triggers LLM-assisted diagnosis (Phase 9)
+# ──────────────────────────────────────────────────────────────────────────
+
+taxonomy_version: "1.0"
+last_updated: "2026-08-27"
+
+mappings:
+  # ── Temporary / Infrastructure Failures (Retriable) ──────────────────────
+  - razorpay_codes:
+      - "GATEWAY_ERROR"
+      - "SERVER_ERROR"
+      - "TIMEOUT"
+      - "BAD_REQUEST_ERROR:PAYMENT_PROCESSING_FAILED"
+    internal_cause: "TEMPORARY_FAILURE"
+    retriable: true
+    suggested_wait_minutes: 30
+    human_review: false
+    llm_assist: false
+    notes: "Transient errors — high retry success rate"
+
+  # ── Insufficient Funds (Retriable with delay) ─────────────────────────────
+  - razorpay_codes:
+      - "BAD_REQUEST_ERROR:INSUFFICIENT_BALANCE"
+      - "BAD_REQUEST_ERROR:INSUFFICIENT_FUNDS"
+      - "BAD_REQUEST_ERROR:CREDIT_LIMIT_EXCEEDED"
+    internal_cause: "INSUFFICIENT_FUNDS"
+    retriable: true
+    suggested_wait_minutes: 1440   # 24 hours — wait for salary/deposit
+    human_review: false
+    llm_assist: false
+    notes: "Payment link preferred — gives customer time to arrange funds"
+
+  # ── Payment Method Issues (Not Retriable — different method needed) ────────
+  - razorpay_codes:
+      - "BAD_REQUEST_ERROR:CARD_EXPIRED"
+      - "BAD_REQUEST_ERROR:INVALID_CARD"
+      - "BAD_REQUEST_ERROR:CARD_INVALID_CVV"
+      - "BAD_REQUEST_ERROR:INVALID_UPI_ID"
+      - "BAD_REQUEST_ERROR:PAYMENT_METHOD_NOT_SUPPORTED"
+    internal_cause: "PAYMENT_METHOD_FAILURE"
+    retriable: false
+    suggested_wait_minutes: null
+    human_review: false
+    llm_assist: false
+    notes: "Requires customer to provide alternate payment method — send payment link"
+
+  # ── Expired Payment / Link ────────────────────────────────────────────────
+  - razorpay_codes:
+      - "BAD_REQUEST_ERROR:PAYMENT_LINK_EXPIRED"
+      - "BAD_REQUEST_ERROR:ORDER_EXPIRED"
+      - "BAD_REQUEST_ERROR:PAYMENT_TIMEOUT"
+    internal_cause: "EXPIRED_PAYMENT"
+    retriable: false
+    suggested_wait_minutes: null
+    human_review: false
+    llm_assist: false
+    notes: "Send fresh payment link"
+
+  # ── Risk / Fraud Rejection (Human review required) ────────────────────────
+  - razorpay_codes:
+      - "BAD_REQUEST_ERROR:CARD_STOLEN"
+      - "BAD_REQUEST_ERROR:RISK_THRESHOLD"
+      - "BAD_REQUEST_ERROR:SUSPECTED_FRAUD"
+      - "BAD_REQUEST_ERROR:PAYMENT_BLOCKED"
+    internal_cause: "RISK_REJECTION"
+    retriable: false
+    suggested_wait_minutes: null
+    human_review: true
+    llm_assist: false
+    notes: "DO NOT auto-retry — escalate to human review"
+
+  # ── Customer-Initiated Abandonment ────────────────────────────────────────
+  - razorpay_codes:
+      - "BAD_REQUEST_ERROR:PAYMENT_CANCELLED"
+      - "BAD_REQUEST_ERROR:USER_CANCELLED"
+    internal_cause: "CUSTOMER_ABANDONMENT"
+    retriable: false
+    suggested_wait_minutes: null
+    human_review: false
+    llm_assist: false
+    notes: "Customer cancelled — use gentle reminder, not retry"
+
+  # ── Bank / Issuer Temporary Decline ──────────────────────────────────────
+  - razorpay_codes:
+      - "BAD_REQUEST_ERROR:BANK_ACCOUNT_FROZEN"
+      - "BAD_REQUEST_ERROR:ISSUER_NOT_AVAILABLE"
+      - "BAD_REQUEST_ERROR:BANK_NOT_AVAILABLE"
+    internal_cause: "TEMPORARY_FAILURE"
+    retriable: true
+    suggested_wait_minutes: 60
+    human_review: false
+    llm_assist: false
+    notes: "Bank-side issue — retry after longer delay"
+
+  # ── Unknown / Catch-All (LLM-assisted diagnosis in Phase 9) ──────────────
+  - razorpay_codes:
+      - "*"
+    internal_cause: "UNKNOWN"
+    retriable: null            # determined after LLM diagnosis
+    suggested_wait_minutes: null
+    human_review: false
+    llm_assist: true           # Phase 9: triggers LLM classification
+    notes: "Unmapped code — diagnosis deferred. Returns UNKNOWN with low confidence (0.3)"
