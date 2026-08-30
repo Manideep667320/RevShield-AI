@@ -117,7 +117,7 @@ class LearningService:
         # Persist RecoveryOutcome ORM record
         outcome_model = RecoveryOutcome(
             outcome_id=uuid4(),
-            intervention_id=UUID(str(intervention.intervention_id)) if intervention else uuid4(),
+            intervention_id=UUID(str(intervention.intervention_id)) if intervention else None,
             payment_status=payment_status,
             recovered_amount=attrib_res.recovered_amount,
             time_to_recovery=attrib_res.time_to_recovery,

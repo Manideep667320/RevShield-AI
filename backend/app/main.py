@@ -59,11 +59,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "*",
+    "Access-Control-Allow-Headers": "*",
+}
+
 # ── Global Error Handlers ───────────────────────────────────────────────
 @app.exception_handler(AppError)
 async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
     logger.error(f"message=AppError | status={exc.status_code} | detail={exc.detail}")
-    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail},
+        headers=CORS_HEADERS,
+    )
 
 
 @app.exception_handler(Exception)
@@ -72,7 +82,8 @@ async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONRespons
     logger.exception(f"message=Unhandled exception | error={exc}")
     return JSONResponse(
         status_code=500,
-        content={"error": "Internal server error"},
+        content={"error": str(exc)},
+        headers=CORS_HEADERS,
     )
 
 # ── Routes ─────────────────────────────────────────────────────────────────

@@ -59,7 +59,7 @@ class RecoveryOutcome(Base):
     __tablename__ = "recovery_outcomes"
 
     outcome_id: Mapped[str] = mapped_column(UUIDType, primary_key=True, default=uuid4)
-    intervention_id: Mapped[str] = mapped_column(UUIDType, ForeignKey("interventions.intervention_id"))
+    intervention_id: Mapped[str | None] = mapped_column(UUIDType, ForeignKey("interventions.intervention_id"), nullable=True)
     payment_status: Mapped[str] = mapped_column(Text, nullable=False)
     recovered_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
     time_to_recovery: Mapped[str | None] = mapped_column(Interval, nullable=True)
