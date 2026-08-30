@@ -43,9 +43,13 @@ class EventQueuePublisher:
             "event_type": "payment.failed",
             "payload": json.dumps(payload),
         }
-        stream_id = await self._redis.xadd(self.stream, message)
-        logger.info(f"message=Event published | stream={self.stream} | stream_id={stream_id} | payment_id={payment_id}")
-        return stream_id
+        try:
+            stream_id = await self._redis.xadd(self.stream, message)
+            logger.info(f"message=Event published | stream={self.stream} | stream_id={stream_id} | payment_id={payment_id}")
+            return stream_id
+        except Exception as e:
+            logger.warning(f"message=Redis queue publishing skipped ({e}) | payment_id={payment_id}")
+            return None
 
     async def ensure_consumer_group(self) -> None:
         """Creates the consumer group if it doesn't exist (idempotent)."""
