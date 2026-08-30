@@ -177,15 +177,15 @@ The engine processes failed payment events through a deterministic, auditable 6-
 - **Dual DB Architecture**: Async PostgreSQL 16 primary connection pool with automatic fallback to local SQLite (`sqlite+aiosqlite:///./revenue_recovery.db`) for zero-dependency execution.
 - **Robust Exception Handling**: Global FastAPI exception handlers and frontend `try/catch` wrappers ensuring high availability and zero runtime error modal crashes.
 
-### 4. Payment Gateway Integration & Event Simulation (Razorpay)
-- **Local Event Simulation**: In local development (where `localhost` endpoints are not publicly reachable for live gateway webhooks), payment failures are triggered via the interactive simulation endpoint (`/api/v1/simulate/payment-failure`), generating native Razorpay failure payloads.
-- **Production Webhook Handler**: Includes `/api/v1/webhooks/razorpay` with HMAC-SHA256 signature validation (`X-Razorpay-Signature`), ready for live public deployment or tunnel testing (e.g. Ngrok).
+### 4. Real-Time Webhook & Gateway Integration (Razorpay)
+- **Live Public Webhook Ingestion**: Deployed with active cloud webhook endpoint `https://revshield-ai.onrender.com/api/v1/webhooks/razorpay/payment` featuring HMAC-SHA256 signature validation (`X-Razorpay-Signature`) to ingest real-time payment failure events directly from Razorpay Dashboard.
+- **Interactive Event Simulation**: Provides `/api/v1/simulate/payment-failure` for instant testing and multi-scenario demonstration without needing live credit card declines.
 - **Intervention Execution**: Dispatches automated recovery actions via Razorpay API sandbox:
   - `PAYMENT_LINK`: Generates dynamic hosted payment links for customer re-payment.
   - `RETRY`: Re-attempts automated card/UPI charges during high-success bank time windows.
   - `REMINDER`: Dispatches automated SMS/email payment notifications.
 - **Circuit Breaker Protection**: Wraps gateway calls in a `CircuitBreaker` (`razorpay_circuit_breaker`) to prevent cascading downstream timeout failures.
-- **Production Schema Parity**: Operates on native Razorpay event payloads for zero-code changes when switching to live production credentials.
+- **Production Schema Parity**: Operates on native Razorpay event payloads for zero-code changes when switching between sandbox and live production credentials.
 
 ---
 
