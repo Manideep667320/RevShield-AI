@@ -55,4 +55,4 @@ htmlcov/
 *.pkl
 *.joblib
 *.h5
-models/
+ml_models/
