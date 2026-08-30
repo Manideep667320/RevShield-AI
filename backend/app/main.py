@@ -78,7 +78,12 @@ async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONRespons
 # ── Routes ─────────────────────────────────────────────────────────────────
 app.include_router(api_router, prefix="/api/v1")
 
-# ── Health Check ───────────────────────────────────────────────────────────
+# ── Health Check & Root ───────────────────────────────────────────────────
+@app.get("/", tags=["System"], summary="Root status check")
+async def root():
+    return {"status": "ok", "service": "RevShield AI Engine", "version": settings.app_version, "docs": "/docs"}
+
+
 @app.get("/health", tags=["System"], summary="Service health check")
 async def health():
     return {"status": "ok", "version": settings.app_version, "env": settings.app_env}

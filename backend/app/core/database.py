@@ -53,8 +53,7 @@ async def create_tables() -> None:
     import app.models.merchant  # noqa
     import app.models.policy  # noqa
     import app.models.workflow  # noqa
-    import app.models.audit_log  # noqa
-    import app.models.outcome  # noqa
+    import app.models.audit  # noqa
 
     try:
         async with engine.begin() as conn:
