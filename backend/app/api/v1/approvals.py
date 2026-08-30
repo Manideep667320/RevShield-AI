@@ -38,31 +38,37 @@ async def approve_recovery_decision(
     """
     from app.services.action_agent import ActionService
     from app.services.learning import LearningService
+    from app.core.logging import get_logger
 
-    policy_svc = PolicyGatewayService(db)
-    clearance, wf = await policy_svc.approve_human_request(opportunity_id, manager_id=body.reviewer_id)
+    logger = get_logger(__name__)
+    try:
+        policy_svc = PolicyGatewayService(db)
+        clearance, wf = await policy_svc.approve_human_request(opportunity_id, manager_id=body.reviewer_id)
 
-    # Execute Stage 5: ACTION
-    action_svc = ActionService(db)
-    action_res, intervention, action_wf = await action_svc.execute_opportunity_intervention(
-        opportunity_id=opportunity_id,
-        clearance_token=clearance.clearance_token,
-    )
+        # Execute Stage 5: ACTION
+        action_svc = ActionService(db)
+        action_res, intervention, action_wf = await action_svc.execute_opportunity_intervention(
+            opportunity_id=opportunity_id,
+            clearance_token=clearance.clearance_token,
+        )
 
-    # Execute Stage 6: OUTCOME
-    learning_svc = LearningService(db)
-    attrib_res, outcome, final_wf = await learning_svc.record_opportunity_outcome(
-        opportunity_id=opportunity_id,
-        payment_status="captured" if action_res.success else "failed",
-    )
+        # Execute Stage 6: OUTCOME
+        learning_svc = LearningService(db)
+        attrib_res, outcome, final_wf = await learning_svc.record_opportunity_outcome(
+            opportunity_id=opportunity_id,
+            payment_status="captured" if action_res.success else "failed",
+        )
 
-    return {
-        "status": "APPROVED",
-        "clearance": clearance,
-        "workflow_id": str(final_wf.workflow_id),
-        "workflow_state": final_wf.current_state,
-        "recovered_amount": str(attrib_res.recovered_amount),
-    }
+        return {
+            "status": "APPROVED",
+            "clearance": clearance,
+            "workflow_id": str(final_wf.workflow_id),
+            "workflow_state": final_wf.current_state,
+            "recovered_amount": str(attrib_res.recovered_amount),
+        }
+    except Exception as e:
+        logger.error(f"message=Approval endpoint error | opp_id={opportunity_id} | error={e}")
+        raise e
 
 
 @router.post("/{opportunity_id}/reject", summary="Reject a pending recovery decision")
