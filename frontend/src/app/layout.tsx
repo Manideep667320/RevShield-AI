@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Revenue Recovery Engine",
+  title: "RevShield AI — Autonomous Payment Recovery",
   description: "AI-powered autonomous payment recovery — detect, diagnose, and recover failed payments in real time.",
 };
 

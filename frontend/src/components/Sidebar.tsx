@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MetricsSummary } from '@/lib/types';
-import { Check, Dot } from 'lucide-react';
+import { ShieldCheck, Dot } from 'lucide-react';
 
 interface SidebarProps {
   metrics: MetricsSummary;
@@ -68,11 +68,11 @@ export function Sidebar({
         {/* Brand Header */}
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-[#E8590C] flex items-center justify-center text-white shadow-xs">
-            <Check className="h-5 w-5 stroke-[3]" />
+            <ShieldCheck className="h-5 w-5 stroke-[2.5]" />
           </div>
           <div>
             <div className="font-bold text-slate-900 text-[17px] tracking-tight leading-none">
-              RevRecov
+              RevShield AI
             </div>
             <div className="text-[10px] text-slate-400 font-mono tracking-wider uppercase mt-1">
               AUTONOMOUS ENGINE
