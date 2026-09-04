@@ -2,6 +2,7 @@
 
 An autonomous engine that detects, diagnoses, and recovers failed payments using a rule-based + ML + LLM progressive intelligence architecture.
 
+> **Live Frontend Application:** [https://rev-shield-ai.vercel.app/](https://rev-shield-ai.vercel.app/)  
 > **Primary KPI:** Incremental Net Revenue Recovered
 
 ---
@@ -30,11 +31,12 @@ Full architecture and implementation plan: see `implementation_plan.md` in AI me
 
 ---
 
-## Cloud Deployment (Render)
+## Cloud Deployment (Render & Vercel)
 
-The backend engine is live and deployed on **Render**:
+The platform is live and deployed in production:
 
-- **Live Service URL**: `https://revshield-ai.onrender.com`
+- **Live Frontend (Vercel)**: [https://rev-shield-ai.vercel.app/](https://rev-shield-ai.vercel.app/)
+- **Live Backend Service (Render)**: `https://revshield-ai.onrender.com`
 - **Live Health Check**: `https://revshield-ai.onrender.com/health`
 - **Interactive Swagger UI**: `https://revshield-ai.onrender.com/docs`
 - **Public Razorpay Webhook Target**: `https://revshield-ai.onrender.com/api/v1/webhooks/razorpay/payment`
