@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react';
 import { PendingApproval } from '@/lib/types';
 import { submitApprovalDecision } from '@/lib/api-client';
-import { CheckCircle2, XCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Check, CheckCircle2, XCircle } from 'lucide-react';
 
 interface Props {
   approvals: PendingApproval[];
@@ -11,10 +11,14 @@ interface Props {
   innerRef?: React.RefObject<HTMLElement | null>;
 }
 
-function fmtINR(v: string | number): string {
+function formatNumber(v: string | number): string {
   const n = typeof v === 'string' ? parseFloat(v) : v;
-  if (isNaN(n)) return '₹0';
-  return `₹${n.toLocaleString('en-IN')}`;
+  if (isNaN(n)) return '0';
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function fmtINR(v: string | number): string {
+  return `₹${formatNumber(v)}`;
 }
 
 function timeAgo(iso: string): string {
@@ -22,7 +26,9 @@ function timeAgo(iso: string): string {
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
-  return `${Math.floor(mins / 60)}h ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 export function ApprovalQueue({ approvals: propApprovals, onRefresh, innerRef }: Props) {
@@ -54,81 +60,81 @@ export function ApprovalQueue({ approvals: propApprovals, onRefresh, innerRef }:
   };
 
   return (
-    <section ref={innerRef} className="space-y-3 scroll-mt-6">
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-bold font-mono text-white tracking-wide flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-amber-400" />
-          APPROVAL QUEUE
-        </h2>
-        {approvals.length > 0 && (
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse-glow" />
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-[10px] font-mono font-bold border border-amber-500/30">
-              {approvals.length} pending
-            </span>
-          </span>
-        )}
+    <section ref={innerRef} className="space-y-2.5 pt-2">
+      <div className="flex items-center gap-2 text-[11px] font-mono tracking-wider text-slate-400 uppercase">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+        <span>APPROVAL QUEUE</span>
       </div>
 
-      {/* Feedback toast */}
       {feedback && (
-        <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-xs font-mono animate-fade-slide-up ${
-          feedback.ok
-            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-            : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-        }`}>
-          {feedback.ok ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertTriangle className="h-4 w-4 shrink-0" />}
+        <div
+          className={`p-3 rounded-xl border text-xs font-mono transition-all ${
+            feedback.ok
+              ? 'bg-[#ECFDF5] border-[#A7F3D0] text-[#059669]'
+              : 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]'
+          }`}
+        >
           {feedback.msg}
         </div>
       )}
 
       {approvals.length === 0 ? (
-        <div className="glass-panel rounded-2xl p-8 text-center space-y-2 animate-fade-slide-up">
-          <CheckCircle2 className="h-8 w-8 text-emerald-500/30 mx-auto" />
-          <p className="text-slate-500 font-mono text-sm">All clear — engine running autonomously.</p>
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-8 text-center shadow-2xs">
+          <div className="h-10 w-10 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] flex items-center justify-center text-[#059669] mx-auto mb-3">
+            <Check className="h-5 w-5 stroke-[2.5]" />
+          </div>
+          <div className="font-semibold text-slate-700 text-sm tracking-tight">
+            All clear — engine running autonomously
+          </div>
+          <div className="text-slate-400 text-xs mt-1">
+            No human decisions required right now
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {approvals.map((item) => (
             <div
               key={item.approval_id}
-              className="glass-panel rounded-xl p-5 border-amber-500/20 space-y-3 animate-fade-slide-up hover:border-amber-500/35 transition-all"
+              className="bg-white rounded-2xl border-2 border-amber-300/80 p-5 shadow-xs space-y-3"
             >
-              {/* Header row */}
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="font-mono text-xs text-slate-400 truncate">{item.merchant_name}</div>
-                  <div className="text-amber-400 font-bold font-mono text-xl mt-0.5">{fmtINR(item.amount)}</div>
+                  <div className="text-xs text-slate-400 font-mono">
+                    {item.merchant_name || 'High-Value Payment Review'}
+                  </div>
+                  <div className="text-xl font-bold font-mono text-amber-600 mt-0.5">
+                    {fmtINR(item.amount)}
+                  </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <span className="px-2 py-0.5 rounded-full border border-rose-500/20 bg-rose-500/8 text-rose-300 text-[10px] font-mono">
-                    {(item.failure_reason || 'UNKNOWN').replace(/_/g, ' ')}
+                <div className="text-right">
+                  <span className="px-2.5 py-0.5 rounded-md border border-rose-200 bg-rose-50 text-rose-600 text-[11px] font-mono">
+                    {(item.failure_reason || 'INSUFFICIENT_FUNDS').replace(/_/g, ' ')}
                   </span>
-                  <div className="text-[10px] text-slate-600 font-mono mt-1">{timeAgo(item.created_at)}</div>
+                  <div className="text-[10px] text-slate-400 font-mono mt-1">
+                    {timeAgo(item.created_at)}
+                  </div>
                 </div>
               </div>
 
-              {/* Strategy recommendation */}
-              <div className="flex items-center gap-2 text-[11px] font-mono">
-                <span className="text-slate-500">AI recommends:</span>
-                <span className="px-2 py-0.5 rounded-full border border-cyan-500/25 bg-cyan-500/10 text-cyan-300 font-bold">
-                  {(item.recommended_strategy || 'RETRY').replace(/_/g, ' ')}
+              <div className="flex items-center gap-2 text-xs font-mono text-slate-600 pt-1">
+                <span>AI Recommends:</span>
+                <span className="px-2 py-0.5 rounded-md border border-cyan-200 bg-cyan-50 text-cyan-700 font-bold text-[11px]">
+                  {(item.recommended_strategy || 'PAYMENT_LINK').replace(/_/g, ' ')}
                 </span>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2.5 pt-2 border-t border-white/5">
+              <div className="flex items-center gap-2.5 pt-2 border-t border-slate-100">
                 <button
                   onClick={() => decide(item.opportunity_id || item.approval_id, false)}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-rose-500/8 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/35 text-rose-300 font-bold text-[11px] font-mono transition-all active:scale-95 cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 font-bold text-xs font-mono transition-all cursor-pointer"
                 >
-                  <XCircle className="h-3.5 w-3.5" /> Reject
+                  <XCircle className="h-4 w-4" /> Reject
                 </button>
                 <button
                   onClick={() => decide(item.opportunity_id || item.approval_id, true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[11px] font-mono shadow-lg shadow-emerald-500/15 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs font-mono shadow-xs transition-all cursor-pointer"
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                  <CheckCircle2 className="h-4 w-4" /> Approve
                 </button>
               </div>
             </div>
